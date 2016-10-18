@@ -20,7 +20,8 @@ type APIResponse struct {
 }
 
 func IndexHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprint(w, "GET /{shortUrl} to redirect, POST to create")
+	http.ServeFile(w, r, "404.html")
+	//fmt.Fprint(w, "GET /{shortUrl} to redirect, POST to create")
 }
 
 func AddHandler(w http.ResponseWriter, r *http.Request) {
@@ -64,7 +65,7 @@ func RedirectHandler(w http.ResponseWriter, r *http.Request) {
 		// Get link doc from db
 		ld, err := MongoDB.FindLink(sUrl)
 		if err != nil {
-			fmt.Fprintf(w, "Could not find a long url that corresponds to the short url %s \n", sUrl)
+			http.ServeFile(w, r, "404.html")
 			return
 		}
 
@@ -84,7 +85,6 @@ func RedirectHandler(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			log.Println("Error recording stats:", err)
 		}
-
 
 		//Ensure we are dealing with an absolute path
 		http.Redirect(w, r, ld.LongUrl, http.StatusFound)
