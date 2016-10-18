@@ -1,0 +1,15 @@
+<component name="libraryTable">
+  <library name="GOPATH &lt;linkr&gt;">
+    <CLASSES>
+      <root url="file://$PROJECT_DIR$/../../../learn" />
+      <root url="file://$PROJECT_DIR$/../.." />
+      <root url="file://$PROJECT_DIR$/../../../golang.org" />
+      <root url="file://$PROJECT_DIR$/../../../goji.io" />
+      <root url="file://$PROJECT_DIR$/../../../gopkg.in" />
+    </CLASSES>
+    <SOURCES />
+    <excluded>
+      <root url="file://$PROJECT_DIR$" />
+    </excluded>
+  </library>
+</component>
