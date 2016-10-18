@@ -16,7 +16,6 @@ type LinkDoc struct {
 	ShortUrl    string        `json:"shortUrl" bson:"shortUrl"`
 	LongUrl     string        `json:"longUrl" bson:"longUrl"`
 	Title       string        `json:"title" bson:"title"`
-	Description string        `json:"description" bson:"description"`
 	Clicks      int           `json:"clicks" bson:"clicks"`
 }
 
@@ -158,8 +157,6 @@ func (c *MongoConnection) AddLink(ld LinkDoc) error {
 	if err != nil {
 		return err
 	}
-
-
 
 	defer session.Close()
 	//insert a document with the provided function arguments
