@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/gorilla/mux"
+	"gopkg.in/mgo.v2/bson"
+	"log"
 	"net/http"
 	"time"
 )
@@ -22,16 +24,25 @@ func IndexHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func AddHandler(w http.ResponseWriter, r *http.Request) {
-	reqBodyStruct := new(Link)
+
+	// Start link doc with the bits we don't get in request body
+	ld := LinkDoc{
+		ID: bson.NewObjectId(),
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+
+	// Get the rest from req body...
 	responseEncoder := json.NewEncoder(w)
-	if err := json.NewDecoder(r.Body).Decode(&reqBodyStruct); err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&ld); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		if err := responseEncoder.Encode(&APIResponse{StatusMessage: err.Error()}); err != nil {
 			fmt.Fprintf(w, "Error occured while processing post request %v \n", err.Error())
 		}
 		return
 	}
-	err := MongoDB.AddUrl(reqBodyStruct.LongURL, reqBodyStruct.ShortURL)
+
+	err := MongoDB.AddLink(ld)
 	if err != nil {
 		w.WriteHeader(http.StatusConflict)
 		if err := responseEncoder.Encode(&APIResponse{StatusMessage: err.Error()}); err != nil {
@@ -43,28 +54,39 @@ func AddHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func RedirectHandler(w http.ResponseWriter, r *http.Request) {
-	//retrieve the variable from the request
+
+	// Get short url from path
 	vars := mux.Vars(r)
 	sUrl := vars["shortUrl"]
+
 	if len(sUrl) > 0 {
-		//find long url that corresponds to the short url
-		lUrl, err := MongoDB.FindLongUrl(sUrl)
+
+		// Get link doc from db
+		ld, err := MongoDB.FindLink(sUrl)
 		if err != nil {
 			fmt.Fprintf(w, "Could not find a long url that corresponds to the short url %s \n", sUrl)
 			return
 		}
 
 		// Increment Clicks
-		go MongoDB.IncrementClicks(sUrl)
+		go MongoDB.IncrementClicks(ld.ShortUrl)
 
-		// TODO - record stats in a separate collection
+		stats := LinkStatsDoc{
+			ID:        bson.NewObjectId(),
+			LinkID:    ld.ID,
+			CreatedAt: time.Now(),
+			Referrer:  r.Referer(),
+			Agent:     r.UserAgent(),
+		}
 
-		// Other stats
-		fmt.Println("Date time:", time.Now())
-		fmt.Println("Agent:", r.UserAgent())
-		fmt.Println("Referrer:", r.Referer())
+		// Increment Clicks
+		err = MongoDB.RecordStats(stats)
+		if err != nil {
+			log.Println("Error recording stats:", err)
+		}
+
 
 		//Ensure we are dealing with an absolute path
-		http.Redirect(w, r, lUrl, http.StatusFound)
+		http.Redirect(w, r, ld.LongUrl, http.StatusFound)
 	}
 }

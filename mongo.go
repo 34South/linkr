@@ -20,6 +20,14 @@ type LinkDoc struct {
 	Clicks      int           `json:"clicks" bson:"clicks"`
 }
 
+type LinkStatsDoc struct {
+	ID        bson.ObjectId `json:"_id,omitempty" bson:"_id"`
+	LinkID    bson.ObjectId `json:"linkId" bson:"linkId"`
+	CreatedAt time.Time     `json:"createdAt" bson:"createdAt"`
+	Referrer  string        `json:"referrer" bson:"referrer"`
+	Agent     string        `json:"agent" bson:"agent"`
+}
+
 type MongoConnection struct {
 	Session  *mgo.Session
 	URL      string
@@ -80,11 +88,23 @@ func (c *MongoConnection) CloseConnection() {
 	}
 }
 
-func (c *MongoConnection) getSessionAndCollection() (session *mgo.Session, urlCollection *mgo.Collection, err error) {
+func (c *MongoConnection) sessionLinksCollection() (session *mgo.Session, urlCollection *mgo.Collection, err error) {
 
 	if c.Session != nil {
 		session = c.Session.Copy()
 		urlCollection = session.DB(c.DB).C(c.LinksCol)
+	} else {
+		err = errors.New("No original session found")
+	}
+
+	return
+}
+
+func (c *MongoConnection) sessionStatsCollection() (session *mgo.Session, urlCollection *mgo.Collection, err error) {
+
+	if c.Session != nil {
+		session = c.Session.Copy()
+		urlCollection = session.DB(c.DB).C(c.StatsCol)
 	} else {
 		err = errors.New("No original session found")
 	}
@@ -97,7 +117,7 @@ func (c *MongoConnection) FindShortUrl(longurl string) (sUrl string, err error) 
 	//create an empty document struct
 	result := LinkDoc{}
 	//get a copy of the original session and a collection
-	session, urlCollection, err := c.getSessionAndCollection()
+	session, urlCollection, err := c.sessionLinksCollection()
 	if err != nil {
 		return
 	}
@@ -111,61 +131,81 @@ func (c *MongoConnection) FindShortUrl(longurl string) (sUrl string, err error) 
 	return result.ShortUrl, nil
 }
 
+func (c *MongoConnection) FindLink(shortUrl string) (LinkDoc, error) {
+
+	l := LinkDoc{}
+
+	//get a copy of the original session and a collection
+	session, lc, err := c.sessionLinksCollection()
+	if err != nil {
+		return l, err
+	}
+	defer session.Close()
+
+	//Find the link doc
+	err = lc.Find(bson.M{"shortUrl": shortUrl}).One(&l)
+	if err != nil {
+		return l, err
+	}
+
+	return l, nil
+}
+
+func (c *MongoConnection) AddLink(ld LinkDoc) error {
+
+	//get a copy of the session
+	session, lc, err := c.sessionLinksCollection()
+	if err != nil {
+		return err
+	}
+
+
+
+	defer session.Close()
+	//insert a document with the provided function arguments
+	err = lc.Insert(ld)
+	if err != nil {
+		//check if the error is due to duplicate shorturl
+		if mgo.IsDup(err) {
+			err = errors.New("Duplicate value for shortUrl")
+		}
+
+		return err
+	}
+
+	return nil
+}
+
 func (c *MongoConnection) IncrementClicks(shortUrl string) error {
 
 	//get a copy of the original session and a collection
-	session, urlCollection, err := c.getSessionAndCollection()
+	session, urlCollection, err := c.sessionLinksCollection()
 	if err != nil {
 		return err
 	}
 	defer session.Close()
 
-	err = urlCollection.Update(bson.M{"shortUrl": shortUrl}, bson.M{"$inc": bson.M{"Clicks": 1}})
+	err = urlCollection.Update(bson.M{"shortUrl": shortUrl}, bson.M{"$inc": bson.M{"clicks": 1}})
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (c *MongoConnection) FindLongUrl(shortUrl string) (lUrl string, err error) {
+func (c *MongoConnection) RecordStats(s LinkStatsDoc) error {
 
-	//create an empty document struct
-	result := LinkDoc{}
+	log.Println("Record link stats")
+
 	//get a copy of the original session and a collection
-	session, urlCollection, err := c.getSessionAndCollection()
+	session, collection, err := c.sessionStatsCollection()
 	if err != nil {
-		return
+		return err
 	}
 	defer session.Close()
-	//Find the shorturl that we need
-	err = urlCollection.Find(bson.M{"shortUrl": shortUrl}).One(&result)
-	if err != nil {
-		return
-	}
-	return result.LongUrl, nil
-}
 
-func (c *MongoConnection) AddUrl(longUrl string, shortUrl string) (err error) {
-	//get a copy of the session
-	session, urlCollection, err := c.getSessionAndCollection()
-	if err == nil {
-		defer session.Close()
-		//insert a document with the provided function arguments
-		err = urlCollection.Insert(
-			&LinkDoc{
-				ID:        bson.NewObjectId(),
-				CreatedAt: time.Now(),
-				UpdatedAt: time.Now(),
-				ShortUrl:  shortUrl,
-				LongUrl:   longUrl,
-			},
-		)
-		if err != nil {
-			//check if the error is due to duplicate shorturl
-			if mgo.IsDup(err) {
-				err = errors.New("Duplicate value for shortUrl")
-			}
-		}
+	err = collection.Insert(s)
+	if err != nil {
+		return err
 	}
-	return
+	return nil
 }
