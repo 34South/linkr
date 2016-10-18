@@ -5,13 +5,9 @@ import (
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 	"log"
+	"os"
 	"time"
 )
-
-//this is subject to change based on the connection parameters, could also be configurable
-const CONNECTIONSTRING = "mongodb://api:MappAPI1734@ds011168.mlab.com:11168/mappcpd"
-const DBNAME = "mappcpd"
-const COLLECTION = "Links"
 
 type LinkDoc struct {
 	ID          bson.ObjectId `json:"_id,omitempty" bson:"_id"`
@@ -25,36 +21,57 @@ type LinkDoc struct {
 }
 
 type MongoConnection struct {
-	Session *mgo.Session
+	Session  *mgo.Session
+	URL      string
+	DB       string
+	LinksCol string
+	StatsCol string
 }
 
-func NewMongoConnection() (conn *MongoConnection) {
-	conn = new(MongoConnection)
-	conn.createConnection()
-	return
+func NewMongoConnection() *MongoConnection {
+
+	c := new(MongoConnection)
+	c.URL = os.Getenv("MONGO_URL")
+	c.DB = os.Getenv("MONGO_DB")
+	c.LinksCol = os.Getenv("MONGO_LINKS_COLLECTION")
+	c.StatsCol = os.Getenv("MONGO_STATS_COLLECTION")
+	c.CreateConnection()
+
+	return c
 }
 
-func (c *MongoConnection) createConnection() (err error) {
+func (c *MongoConnection) CreateConnection() (err error) {
 
-	log.Println("Connecting to mongo server....")
-	c.Session, err = mgo.Dial(CONNECTIONSTRING)
-	if err == nil {
-		log.Println("Connection established to mongo server")
-		URLCollection := c.Session.DB(DBNAME).C(COLLECTION)
-		if URLCollection == nil {
-			err = errors.New("Collection could not be created, maybe need to create it manually")
-		}
-		//This will create a unique index to ensure that there won't be duplicate shorturls in the database.
-		index := mgo.Index{
-			Key:      []string{"$text:shortUrl"},
-			Unique:   true,
-			DropDups: true,
-		}
-		URLCollection.EnsureIndex(index)
-	} else {
+	log.Println("Connecting to Mongo server....")
+	c.Session, err = mgo.Dial(c.URL)
+	if err != nil {
 		log.Fatalf("Error occured while creating mongodb connection: %s\n", err.Error())
 	}
-	return
+
+	log.Println("Connected to server!")
+	LinksCollection := c.Session.DB(c.DB).C(c.LinksCol)
+	if LinksCollection == nil {
+		err = errors.New("Could not create or attach to collection: " + c.LinksCol)
+	} else {
+		log.Printf("Found collection %s\n", c.LinksCol)
+	}
+
+	StatsCollection := c.Session.DB(c.DB).C(c.StatsCol)
+	if StatsCollection == nil {
+		err = errors.New("Could not create or attach to collection: " + c.StatsCol)
+	} else {
+		log.Printf("Found collection %s\n", c.StatsCol)
+	}
+
+	//This will create a unique index to ensure that there won't be duplicate shorturls in the database.
+	index := mgo.Index{
+		Key:      []string{"$text:shortUrl"},
+		Unique:   true,
+		DropDups: true,
+	}
+	LinksCollection.EnsureIndex(index)
+
+	return err
 }
 
 func (c *MongoConnection) CloseConnection() {
@@ -64,16 +81,19 @@ func (c *MongoConnection) CloseConnection() {
 }
 
 func (c *MongoConnection) getSessionAndCollection() (session *mgo.Session, urlCollection *mgo.Collection, err error) {
+
 	if c.Session != nil {
 		session = c.Session.Copy()
-		urlCollection = session.DB(DBNAME).C(COLLECTION)
+		urlCollection = session.DB(c.DB).C(c.LinksCol)
 	} else {
 		err = errors.New("No original session found")
 	}
+
 	return
 }
 
 func (c *MongoConnection) FindShortUrl(longurl string) (sUrl string, err error) {
+
 	//create an empty document struct
 	result := LinkDoc{}
 	//get a copy of the original session and a collection
@@ -82,10 +102,12 @@ func (c *MongoConnection) FindShortUrl(longurl string) (sUrl string, err error) 
 		return
 	}
 	defer session.Close()
+
 	err = urlCollection.Find(bson.M{"longUrl": longurl}).One(&result)
 	if err != nil {
 		return
 	}
+
 	return result.ShortUrl, nil
 }
 
@@ -98,15 +120,15 @@ func (c *MongoConnection) IncrementClicks(shortUrl string) error {
 	}
 	defer session.Close()
 
-	err = urlCollection.Update(bson.M{"shortUrl": shortUrl}, bson.M{"$inc": bson.M{"Clicks" : 1}})
+	err = urlCollection.Update(bson.M{"shortUrl": shortUrl}, bson.M{"$inc": bson.M{"Clicks": 1}})
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-
 func (c *MongoConnection) FindLongUrl(shortUrl string) (lUrl string, err error) {
+
 	//create an empty document struct
 	result := LinkDoc{}
 	//get a copy of the original session and a collection
