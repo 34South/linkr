@@ -10,21 +10,23 @@ import (
 )
 
 type LinkDoc struct {
-	ID          bson.ObjectId `json:"_id,omitempty" bson:"_id"`
-	CreatedAt   time.Time     `json:"createdAt" bson:"createdAt"`
-	UpdatedAt   time.Time     `json:"updatedAt" bson:"updatedAt"`
-	ShortUrl    string        `json:"shortUrl" bson:"shortUrl"`
-	LongUrl     string        `json:"longUrl" bson:"longUrl"`
-	Title       string        `json:"title" bson:"title"`
-	Clicks      int           `json:"clicks" bson:"clicks"`
+	ID             bson.ObjectId `json:"_id,omitempty" bson:"_id"`
+	CreatedAt      time.Time     `json:"createdAt" bson:"createdAt"`
+	UpdatedAt      time.Time     `json:"updatedAt" bson:"updatedAt"`
+	ShortUrl       string        `json:"shortUrl" bson:"shortUrl"`
+	LongUrl        string        `json:"longUrl" bson:"longUrl"`
+	Title          string        `json:"title" bson:"title"`
+	Clicks         int           `json:"clicks" bson:"clicks"`
+	LastStatusCode int           `json:"lastStatusCode" bson:"lastStatusCode"`
 }
 
 type LinkStatsDoc struct {
-	ID        bson.ObjectId `json:"_id,omitempty" bson:"_id"`
-	LinkID    bson.ObjectId `json:"linkId" bson:"linkId"`
-	CreatedAt time.Time     `json:"createdAt" bson:"createdAt"`
-	Referrer  string        `json:"referrer" bson:"referrer"`
-	Agent     string        `json:"agent" bson:"agent"`
+	ID         bson.ObjectId `json:"_id,omitempty" bson:"_id"`
+	LinkID     bson.ObjectId `json:"linkId" bson:"linkId"`
+	CreatedAt  time.Time     `json:"createdAt" bson:"createdAt"`
+	Referrer   string        `json:"referrer" bson:"referrer"`
+	Agent      string        `json:"agent" bson:"agent"`
+	StatusCode int           `json:"statusCode" bson:"statusCode"`
 }
 
 type MongoConnection struct {
@@ -183,6 +185,21 @@ func (c *MongoConnection) IncrementClicks(shortUrl string) error {
 	defer session.Close()
 
 	err = urlCollection.Update(bson.M{"shortUrl": shortUrl}, bson.M{"$inc": bson.M{"clicks": 1}})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *MongoConnection) UpdateStatusCode(shortUrl string, statusCode int) error {
+
+	session, urlCollection, err := c.sessionLinksCollection()
+	if err != nil {
+		return err
+	}
+	defer session.Close()
+
+	err = urlCollection.Update(bson.M{"shortUrl": shortUrl}, bson.M{"$set": bson.M{"lastStatusCode": statusCode}})
 	if err != nil {
 		return err
 	}
