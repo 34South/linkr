@@ -2,9 +2,6 @@
 	"ImportPath": "github.com/mappcpd/linkr",
 	"GoVersion": "go1.6",
 	"GodepVersion": "v74",
-	"Packages": [
-		"./..."
-	],
 	"Deps": [
 		{
 			"ImportPath": "github.com/gorilla/context",
