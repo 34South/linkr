@@ -7,7 +7,7 @@ This is a simple API / service to enable short-link redirection.
 
 The short links are stored in a MongoDB collection, thus:
 
-```json
+```javascript
 {
 	"_id" : ObjectId("5809363c73929f0003a3affb"),
 	"createdAt" : ISODate("2016-10-20T21:25:16.898Z"),
@@ -22,7 +22,7 @@ The short links are stored in a MongoDB collection, thus:
 
 ... and stores stats, thus:
 
-```json
+```javascript
 {
 	"_id" : ObjectId("5808485073929f0003a3ab78"),
 	"linkId" : ObjectId("580842e29257774f4174dd8f"),
@@ -35,7 +35,7 @@ The short links are stored in a MongoDB collection, thus:
 
 ...which is handy for finding broken links.
 
-It also checks that the target URl is functional before redirecting. This way you can opt to show your own error pages. 
+It also checks that the target URL is functional before redirecting. This way you can opt to show your own error pages. 
 
 Speaking of which, there are 2:
 
@@ -58,6 +58,11 @@ Finally, once deployed a GET request to http://host.com/shortpath will do the do
 * Increment the `clicks` field
 * Record a stats document
 * Redirect (302) to th target, or server up an error page
+
+Todo:
+* Make error pages part of config
+* Add auth option
+
 
 
 
