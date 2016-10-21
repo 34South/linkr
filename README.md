@@ -39,10 +39,8 @@ It also checks that the target URL is functional before redirecting. This way yo
 
 Speaking of which, there are 2:
 
-* 404-l.html - served up when the remote target is bung
-* 404-s - served up when the short link / path cannot be found in the database
-
-Yes, they are stupid names as they aren't always 404s - I'll change that.
+* error_l.html - served up when the remote target is bung
+* error_s.html - served up when the short link / path cannot be found in the database
 
 It requires the following environment vars:
 
@@ -60,7 +58,7 @@ Finally, once deployed a GET request to http://host.com/shortpath will do the do
 * Redirect (302) to th target, or server up an error page
 
 Todo:
-* Make error pages part of config
+* Make error pages configurable via environment vars
 * Add auth option
 
 

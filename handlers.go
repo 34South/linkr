@@ -21,7 +21,7 @@ type APIResponse struct {
 }
 
 func IndexHandler(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, "404-s.html")
+	http.ServeFile(w, r, "error_s.html")
 	//fmt.Fprint(w, "GET /{shortUrl} to redirect, POST to create")
 }
 
@@ -66,7 +66,7 @@ func RedirectHandler(w http.ResponseWriter, r *http.Request) {
 		// Get link doc from db
 		ld, err := MongoDB.FindLink(sUrl)
 		if err != nil {
-			http.ServeFile(w, r, "404-s.html")
+			http.ServeFile(w, r, "error_s.html")
 			return
 		}
 
@@ -117,6 +117,6 @@ func RedirectHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		http.ServeFile(w, r, "404-l.html")
+		http.ServeFile(w, r, "error_l.html")
 	}
 }
