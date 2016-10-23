@@ -14,11 +14,11 @@ type Envr struct {
 	Name         string            `json:"environmentName"` // name of environment
 	Files        []string          `json:"configFiles"`     // files to read from, default .env
 	RequiredVars []string          `json:"requiredVars"`    // the env vars we need
-	ExistingVars []string          `json:"existingVars"`    // the env vars that are already set
-	MissingVars  []string          `json:"missingVars"`     // the env vars not set (initially)
-	V            map[string]string `json:"values"`          // map of vars and values that are set
-	Status       string            `json:"status"`          // a message about current stats
-	Error        error             `json:"error"`           // Current error, so we can chain :)
+	ExistingVars []string          `json:"existingVars"`    // the env vars that are set
+	MissingVars  []string          `json:"missingVars"`     // the env vars not set
+	V            map[string]string `json:"values"`          // map of existing vars and values
+	Status       string            `json:"status"`          // a message about current statuss
+	Error        error             `json:"error"`           // error field, for easier method chaining
 }
 
 // NewEnvr sets up a new Environment. It takes name, filename, and a list of required vars.
@@ -168,6 +168,8 @@ func (e *Envr) SetVar(v, s string) error {
 
 	return nil
 }
+
+// TODO: A method to check for vars that are INV the env file but NOT in the list of expected vars
 
 // JSON returns a JSOn version of the Envr value
 func (e *Envr) JSON() (string, error) {

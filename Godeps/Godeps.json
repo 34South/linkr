@@ -1,8 +1,12 @@
 {
-	"ImportPath": "github.com/mappcpd/linkr",
+	"ImportPath": "github.com/34South/linkr",
 	"GoVersion": "go1.6",
 	"GodepVersion": "v74",
 	"Deps": [
+		{
+			"ImportPath": "github.com/34South/envr",
+			"Rev": "6aa3c0e451014f7f62fb15c8e777cfb113ce5937"
+		},
 		{
 			"ImportPath": "github.com/gorilla/context",
 			"Rev": "1ea25387ff6f684839d82767c1733ff4d4d15d0a"
@@ -16,10 +20,6 @@
 			"ImportPath": "github.com/joho/godotenv",
 			"Comment": "v1-10-g4ed1339",
 			"Rev": "4ed13390c0acd2ff4e371e64d8b97c8954138243"
-		},
-		{
-			"ImportPath": "github.com/mappcpd/envr",
-			"Rev": "d861872cfd9b3b26bf67d1702fa068716d501a98"
 		},
 		{
 			"ImportPath": "gopkg.in/mgo.v2",
