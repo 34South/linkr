@@ -55,6 +55,7 @@ func AddHandler(w http.ResponseWriter, r *http.Request) {
 	responseEncoder.Encode(&APIResponse{StatusMessage: "Ok"})
 }
 
+// RedirectHandler redirects the request to the target long url
 func RedirectHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Get short url from path
@@ -118,5 +119,35 @@ func RedirectHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		http.ServeFile(w, r, "error_l.html")
+	}
+}
+
+// JSONHandler responds with te JSON info about the link
+func JSONHandler(w http.ResponseWriter, r *http.Request) {
+
+	// Get short url from path
+	vars := mux.Vars(r)
+	sUrl := vars["shortUrl"]
+
+	if len(sUrl) > 0 {
+
+		// Get link doc from db
+		ld, err := MongoDB.FindLink(sUrl)
+		if err != nil {
+			http.ServeFile(w, r, "error_s.html")
+			return
+		}
+
+		var js interface{}
+		js, err = json.Marshal(ld)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(js.([]byte))
+
+		return
 	}
 }
