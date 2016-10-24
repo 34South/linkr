@@ -208,8 +208,6 @@ func (c *MongoConnection) UpdateStatusCode(shortUrl string, statusCode int) erro
 
 func (c *MongoConnection) RecordStats(s LinkStatsDoc) error {
 
-	log.Println("Record link stats")
-
 	//get a copy of the original session and a collection
 	session, collection, err := c.sessionStatsCollection()
 	if err != nil {
@@ -226,8 +224,6 @@ func (c *MongoConnection) RecordStats(s LinkStatsDoc) error {
 
 func (c *MongoConnection) Popular(n int) ([]LinkDoc, error) {
 
-	log.Printf("Get most popular %v links", n)
-
 	var r []LinkDoc
 
 	//get a copy of the original session and a collection
@@ -237,7 +233,7 @@ func (c *MongoConnection) Popular(n int) ([]LinkDoc, error) {
 	}
 	defer session.Close()
 
-	err = collection.Find(bson.M{"clicks": bson.M{"$gt": 0}}).Select(bson.M{"_id": 0, "title": 1, "shortUrl": 1, "longUrl": 1, "clicks": 1, "lastStatusCode": 1}).Sort("-clicks").All(&r)
+	err = collection.Find(bson.M{"clicks": bson.M{"$gt": 0}}).Limit(n).Sort("-clicks").All(&r)
 	if err != nil {
 		return r, err
 	}
