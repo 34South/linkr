@@ -167,3 +167,23 @@ func JSONHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 }
+
+// Popular shows the most popular links
+func PopularHandler(w http.ResponseWriter, r *http.Request) {
+
+	ld, err := MongoDB.Popular(10)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	var js interface{}
+	js, err = json.Marshal(ld)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(js.([]byte))
+}

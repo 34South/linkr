@@ -11,6 +11,7 @@ func Start() {
 
 	r := mux.NewRouter()
 	r.Methods("GET").Path("/").HandlerFunc(IndexHandler)
+	r.Methods("GET").Path("/popular").HandlerFunc(PopularHandler)
 	r.Methods("GET").Path("/{shortUrl}.json").HandlerFunc(JSONHandler)
 	r.Methods("GET").Path("/{shortUrl}").HandlerFunc(RedirectHandler)
 	// TODO: secure this !!

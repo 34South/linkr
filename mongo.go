@@ -223,3 +223,24 @@ func (c *MongoConnection) RecordStats(s LinkStatsDoc) error {
 	}
 	return nil
 }
+
+func (c *MongoConnection) Popular(n int) ([]LinkDoc, error) {
+
+	log.Printf("Get most popular %v links", n)
+
+	var r []LinkDoc
+
+	//get a copy of the original session and a collection
+	session, collection, err := c.sessionLinksCollection()
+	if err != nil {
+		return r, err
+	}
+	defer session.Close()
+
+	err = collection.Find(bson.M{"clicks": bson.M{"$gt": 0}}).Select(bson.M{"_id": 0, "title": 1, "shortUrl": 1, "longUrl": 1, "clicks": 1, "lastStatusCode": 1}).All(&r)
+	if err != nil {
+		return r, err
+	}
+
+	return r, nil
+}
