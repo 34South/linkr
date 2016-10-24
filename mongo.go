@@ -237,7 +237,7 @@ func (c *MongoConnection) Popular(n int) ([]LinkDoc, error) {
 	}
 	defer session.Close()
 
-	err = collection.Find(bson.M{"clicks": bson.M{"$gt": 0}}).Select(bson.M{"_id": 0, "title": 1, "shortUrl": 1, "longUrl": 1, "clicks": 1, "lastStatusCode": 1}).All(&r)
+	err = collection.Find(bson.M{"clicks": bson.M{"$gt": 0}}).Select(bson.M{"_id": 0, "title": 1, "shortUrl": 1, "longUrl": 1, "clicks": 1, "lastStatusCode": 1}).Sort("-clicks").All(&r)
 	if err != nil {
 		return r, err
 	}
