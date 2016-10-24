@@ -9,6 +9,7 @@ import (
 
 	"gopkg.in/mgo.v2/bson"
 	"github.com/gorilla/mux"
+	"errors"
 )
 
 type Link struct {
@@ -82,9 +83,25 @@ func RedirectHandler(w http.ResponseWriter, r *http.Request) {
 			Agent:     r.UserAgent(),
 		}
 
-		// Check link is UP, if it isn't we will still create the record but will set the status
-		// This way we have a nice way to record broken links
-		res, err := http.Get(ld.LongUrl)
+		// Check link is UP, if it isn't we can record the status. Note that this fancy client
+		// function is here because one link had more than 10 redirects at th remote end.
+		// So this allows us to up the limit (10 is Go default)... it came from here:
+		// https://gist.github.com/VojtechVitek/eb0171fc65f945a8641e
+		client := &http.Client{
+			CheckRedirect: func() func(req *http.Request, via []*http.Request) error {
+				redirects := 0
+				return func(req *http.Request, via []*http.Request) error {
+					if redirects > 15 {
+						log.Printf("Checking target url has had %v redirects", redirects)
+						return errors.New("More than 15 redirects")
+					}
+					redirects++
+					return nil
+				}
+			}(),
+		}
+
+		res, err := client.Get(ld.LongUrl)
 		if err != nil {
 			// 'res' is nil so set status here..
 			log.Println("Error checking long url:", err)
@@ -98,7 +115,6 @@ func RedirectHandler(w http.ResponseWriter, r *http.Request) {
 
 		// Update LinkDoc if http status changes
 		if stats.StatusCode != ld.LastStatusCode {
-			// TODO - actually update the doc
 			msg := fmt.Sprintf("Changing http status of %s from %v to %v", ld.ShortUrl, ld.LastStatusCode, stats.StatusCode)
 			log.Println(msg)
 			err := MongoDB.UpdateStatusCode(ld.ShortUrl, stats.StatusCode)
@@ -113,7 +129,7 @@ func RedirectHandler(w http.ResponseWriter, r *http.Request) {
 			log.Println("Error recording stats:", err)
 		}
 
-		if stats.StatusCode == 200 {
+		if stats.StatusCode == http.StatusOK {
 			http.Redirect(w, r, ld.LongUrl, http.StatusFound)
 			return
 		}
