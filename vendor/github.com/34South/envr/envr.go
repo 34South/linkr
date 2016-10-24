@@ -1,12 +1,12 @@
 package envr
 
 import (
-	"os"
 	"encoding/json"
 	"fmt"
-	"log"
-	"strings"
 	"github.com/joho/godotenv"
+	"log"
+	"os"
+	"strings"
 )
 
 type Envr struct {

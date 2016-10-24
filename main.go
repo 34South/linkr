@@ -1,8 +1,8 @@
 package main
 
 import (
-	"log"
 	"github.com/34South/envr"
+	"log"
 )
 
 var MongoDB *MongoConnection

@@ -7,9 +7,10 @@ import (
 	"net/http"
 	"time"
 
-	"gopkg.in/mgo.v2/bson"
-	"github.com/gorilla/mux"
 	"errors"
+	"github.com/gorilla/mux"
+	"gopkg.in/mgo.v2/bson"
+	"html/template"
 )
 
 type Link struct {
@@ -169,7 +170,7 @@ func JSONHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // Popular shows the most popular links
-func PopularHandler(w http.ResponseWriter, r *http.Request) {
+func PopularJSONHandler(w http.ResponseWriter, r *http.Request) {
 
 	ld, err := MongoDB.Popular(10)
 	if err != nil {
@@ -186,4 +187,33 @@ func PopularHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(js.([]byte))
+}
+
+// PopularHTMLHandler shows the most popular links in an HTML template
+func PopularHTMLHandler(w http.ResponseWriter, r *http.Request) {
+
+	n := 10
+
+	ld, err := MongoDB.Popular(n)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	t, err := template.ParseFiles("popular.html")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	pageData := make(map[string]interface{})
+	pageData["Title"] = "Popular Links"
+	pageData["Heading"] = fmt.Sprintf("%v Most Popular Links", n)
+	pageData["Links"] = ld
+
+	err = t.Execute(w, pageData)
+	if err != nil {
+		log.Printf("template execution: %s", err)
+	}
+
 }
