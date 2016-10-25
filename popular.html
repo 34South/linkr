@@ -21,10 +21,10 @@
                             {{ $link.Title }}
                         </div>
                         <div class="col-xs-3">
-                            <button type="button" href="{{ $.BaseUrl }}/{{ $link.ShortUrl }}" target="_blank" class="btn btn-sm btn-block btn-primary">
+                            <a type="button" href="{{ $.BaseUrl }}/{{ $link.ShortUrl }}" target="_blank" class="btn btn-sm btn-block btn-primary">
                                 <span class="badge">{{ $link.Clicks }}</span>&nbsp;&nbsp;
                                  {{ $.BaseUrl }}/{{ $link.ShortUrl }}
-                            </button>
+                            </a>
                         </div>
                     </div>
                 </div>
