@@ -13,6 +13,7 @@ func Start() {
 	r.Methods("GET").Path("/").HandlerFunc(IndexHandler)
 	r.Methods("GET").Path("/popular.html").HandlerFunc(PopularHTMLHandler)
 	r.Methods("GET").Path("/popular.json").HandlerFunc(PopularJSONHandler)
+	r.Methods("GET").Path("/broken.json").HandlerFunc(BrokenJSONHandler)
 	r.Methods("GET").Path("/{shortUrl}.json").HandlerFunc(JSONHandler)
 	r.Methods("GET").Path("/{shortUrl}").HandlerFunc(RedirectHandler)
 	// TODO: secure this !!

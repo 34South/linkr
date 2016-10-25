@@ -240,3 +240,22 @@ func (c *MongoConnection) Popular(n int) ([]LinkDoc, error) {
 
 	return r, nil
 }
+
+func (c *MongoConnection) Broken() ([]LinkDoc, error) {
+
+	var r []LinkDoc
+
+	//get a copy of the original session and a collection
+	session, collection, err := c.sessionLinksCollection()
+	if err != nil {
+		return r, err
+	}
+	defer session.Close()
+
+	err = collection.Find(bson.M{"lastStatusCode": bson.M{"$exists": true, "$nin": []int{200,0}}}).Sort("-clicks").All(&r)
+	if err != nil {
+		return r, err
+	}
+
+	return r, nil
+}
