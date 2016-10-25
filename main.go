@@ -15,6 +15,7 @@ func init() {
 		"MONGO_DB",
 		"MONGO_LINKS_COLLECTION",
 		"MONGO_STATS_COLLECTION",
+		"LINKR_BASE_URL",
 	}).Passive().Fatal()
 }
 

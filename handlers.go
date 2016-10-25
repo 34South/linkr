@@ -11,6 +11,8 @@ import (
 	"github.com/gorilla/mux"
 	"gopkg.in/mgo.v2/bson"
 	"html/template"
+	"os"
+	"strconv"
 )
 
 type Link struct {
@@ -192,28 +194,42 @@ func PopularJSONHandler(w http.ResponseWriter, r *http.Request) {
 // PopularHTMLHandler shows the most popular links in an HTML template
 func PopularHTMLHandler(w http.ResponseWriter, r *http.Request) {
 
-	n := 10
+	// Get n from the url if there, otherwise default to 10
+	q := r.URL.Query()
+	ns, ok := q["n"] /// n is a slice
+	limit := 10 // default
+	var err error
+	if ok {
+		limit, err = strconv.Atoi(ns[0])
+		if err != nil {
+			limit = 10 // if the number in query string is bung
+		}
+	}
 
-	ld, err := MongoDB.Popular(n)
+	// Get the link docs
+	ld, err := MongoDB.Popular(limit)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
+	// Parse the template
 	t, err := template.ParseFiles("popular.html")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
+	// Set up some page data
 	pageData := make(map[string]interface{})
 	pageData["Title"] = "Popular Links"
-	pageData["Heading"] = fmt.Sprintf("%v Most Popular Links", n)
+	pageData["Heading"] = fmt.Sprintf("%v Most Popular Links", limit)
+	pageData["BaseUrl"] = os.Getenv("LINKR_BASE_URL")
 	pageData["Links"] = ld
 
+	// Serve it up
 	err = t.Execute(w, pageData)
 	if err != nil {
 		log.Printf("template execution: %s", err)
 	}
-
 }

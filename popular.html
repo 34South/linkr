@@ -14,10 +14,20 @@
             <div class="list-group">
 
             {{ range $key, $link := .Links }}
-                <a href="{{ $link.LongUrl }}" target="_blank" class="list-group-item">
-                    <span class="badge">{{ $link.Clicks }}</span>
-                    {{ $link.Title }}
-                </a>
+                <div class="list-group-item">
+
+                    <div class="row">
+                        <div class="col-xs-9">
+                            {{ $link.Title }}
+                        </div>
+                        <div class="col-xs-3">
+                            <button type="button" href="{{ $.BaseUrl }}/{{ $link.ShortUrl }}" target="_blank" class="btn btn-sm btn-block btn-primary">
+                                <span class="badge">{{ $link.Clicks }}</span>&nbsp;&nbsp;
+                                 {{ $.BaseUrl }}/{{ $link.ShortUrl }}
+                            </button>
+                        </div>
+                    </div>
+                </div>
             {{ end }}
 
             </div>
