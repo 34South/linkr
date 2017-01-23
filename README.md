@@ -57,6 +57,12 @@ Finally, once deployed a GET request to http://host.com/shortpath will do the do
 * Record a stats document
 * Redirect (302) to th target, or server up an error page
 
+
+### Deploy
+
+
+
+
 Todo:
 * Make error pages configurable via environment vars
 * Add auth option

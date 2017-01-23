@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"github.com/rs/cors"
 )
 
 func Start() {
@@ -25,6 +26,9 @@ func Start() {
 		port = "8080"
 	}
 
+	//... wrap r with simple CORS handler?
+	h := cors.Default().Handler(r)
+
 	log.Printf("Listening on port %s\n", port)
-	log.Fatal(http.ListenAndServe(":"+port, r))
+	log.Fatal(http.ListenAndServe(":"+port, h))
 }

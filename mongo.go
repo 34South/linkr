@@ -252,7 +252,7 @@ func (c *MongoConnection) Broken() ([]LinkDoc, error) {
 	}
 	defer session.Close()
 
-	err = collection.Find(bson.M{"lastStatusCode": bson.M{"$exists": true, "$nin": []int{200,0}}}).Sort("-clicks").All(&r)
+	err = collection.Find(bson.M{"lastStatusCode": bson.M{"$exists": true, "$nin": []int{200, 0}}}).Sort("-clicks").All(&r)
 	if err != nil {
 		return r, err
 	}

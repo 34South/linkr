@@ -197,7 +197,7 @@ func PopularHTMLHandler(w http.ResponseWriter, r *http.Request) {
 	// Get n from the url if there, otherwise default to 10
 	q := r.URL.Query()
 	ns, ok := q["n"] /// n is a slice
-	limit := 10 // default
+	limit := 10      // default
 	var err error
 	if ok {
 		limit, err = strconv.Atoi(ns[0])
