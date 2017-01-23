@@ -141,7 +141,7 @@ func RedirectHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// JSONHandler responds with te JSON info about the link
+// JSONHandler responds with the JSON info about the link
 func JSONHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Get short url from path
@@ -165,6 +165,7 @@ func JSONHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Cache-Control", "no-cache, no-store")
 		w.Write(js.([]byte))
 
 		return
@@ -188,6 +189,7 @@ func PopularJSONHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Cache-Control", "no-cache, no-store")
 	w.Write(js.([]byte))
 }
 
@@ -251,5 +253,6 @@ func BrokenJSONHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Cache-Control", "no-cache, no-store")
 	w.Write(js.([]byte))
 }

@@ -60,6 +60,11 @@ Finally, once deployed a GET request to http://host.com/shortpath will do the do
 
 ### Deploy
 
+# run godep
+godep save
+
+# remove the sasl bit in Godep.json
+
 
 
 
