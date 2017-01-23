@@ -165,7 +165,7 @@ func JSONHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		w.Header().Set("Cache-Control", "no-cache, no-store")
+		w.Header().Set("Cache-Control", "no-cache, no-store, private, max-age=0")
 		w.Write(js.([]byte))
 
 		return
@@ -253,6 +253,6 @@ func BrokenJSONHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Cache-Control", "no-cache, no-store")
+	w.Header().Set("Cache-Control", "no-cache, no-store, private, max-age=0")
 	w.Write(js.([]byte))
 }
