@@ -29,6 +29,10 @@ func IndexHandler(w http.ResponseWriter, r *http.Request) {
 	//fmt.Fprint(w, "GET /{shortUrl} to redirect, POST to create")
 }
 
+func LoaderImage(w http.ResponseWriter, r *http.Request) {
+	http.ServeFile(w, r, "loader1.svg")
+}
+
 func AddHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Start link doc with the bits we don't get in request body

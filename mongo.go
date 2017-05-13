@@ -159,16 +159,19 @@ func (c *MongoConnection) AddLink(ld LinkDoc) error {
 	if err != nil {
 		return err
 	}
-
 	defer session.Close()
-	//insert a document with the provided function arguments
-	err = lc.Insert(ld)
-	if err != nil {
-		//check if the error is due to duplicate shorturl
-		if mgo.IsDup(err) {
-			err = errors.New("Duplicate value for shortUrl")
-		}
 
+	// Use shortlink as a selector for an upsert
+	s := bson.M{"shortUrl": ld.ShortUrl}
+
+	//insert a document with the provided function arguments
+	err = lc.UpdateId(s, ld)
+	if err != nil {
+		// No need as we are upserting
+		////check if the error is due to duplicate shorturl
+		//if mgo.IsDup(err) {
+		//	err = errors.New("Duplicate value for shortUrl")
+		//}
 		return err
 	}
 
