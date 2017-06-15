@@ -13,6 +13,7 @@ import (
 	"html/template"
 	"os"
 	"strconv"
+	"gopkg.in/mgo.v2"
 )
 
 type Link struct {
@@ -25,12 +26,7 @@ type APIResponse struct {
 }
 
 func IndexHandler(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, "error_s.html")
-	//fmt.Fprint(w, "GET /{shortUrl} to redirect, POST to create")
-}
-
-func LoaderImage(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, "loader1.svg")
+	http.Redirect(w, r, "/popular.html", http.StatusSeeOther)
 }
 
 // RedirectHandler redirects the request to the target long url
@@ -42,18 +38,44 @@ func RedirectHandler(w http.ResponseWriter, r *http.Request) {
 
 	if len(sUrl) > 0 {
 
+		fmt.Printf("Looking for %s... ", sUrl)
+
 		// Get link doc from db
 		ld, err := MongoDB.FindLink(sUrl)
-		if err != nil {
-			http.ServeFile(w, r, "error_s.html")
+		if err == mgo.ErrNotFound {
+			fmt.Println("not found")
+			msg := fmt.Sprintf("The link /%s could not be found in the database.", sUrl)
+			tpl.ExecuteTemplate(w, "error", msg)
 			return
 		}
+		// Some other db error...
+		if err != nil {
+			fmt.Println("error")
+			msg := fmt.Sprintf("The server has encountered an error whilst trying to look up the link /%s", sUrl)
+			tpl.ExecuteTemplate(w, "error", msg)
+			return
+		}
+		// Found
+		fmt.Println(" -> ", ld.LongUrl)
 
-		// Ok, change of approach here... we'll immediately redirect the user
-
-		// Increment Clicks
+		// Increment clicks regardless... a click is a click
 		go MongoDB.IncrementClicks(ld.ShortUrl)
 
+		// If the last status was 200 - OK redirect immediately to save time. If the subsequent check finds the link is
+		// broken then only the first user will see the "hang" or 404. Subsequent users will see the direct link page.
+		// This is a much faster user experience as the url check can happen AFTER.
+		if ld.LastStatusCode == 200 {
+			http.Redirect(w, r, ld.LongUrl, http.StatusSeeOther)
+
+		} else {
+			tpl.ExecuteTemplate(w, "direct", ld.LongUrl)
+		}
+
+		// Either way the user gets a result quickly, and we can check the link AFTER that fact...
+		// DO NOT RESPOND PAST HERE!!
+
+
+		// LinkStats
 		stats := LinkStatsDoc{
 			ID:        bson.NewObjectId(),
 			LinkID:    ld.ID,
@@ -71,7 +93,7 @@ func RedirectHandler(w http.ResponseWriter, r *http.Request) {
 				redirects := 0
 				return func(req *http.Request, via []*http.Request) error {
 					if redirects > 15 {
-						log.Printf("Checking target url has had %v redirects", redirects)
+						fmt.Println("Checking target url had %v redirects", redirects)
 						return errors.New("More than 15 redirects")
 					}
 					redirects++
@@ -83,9 +105,10 @@ func RedirectHandler(w http.ResponseWriter, r *http.Request) {
 		res, err := client.Get(ld.LongUrl)
 		if err != nil {
 			// 'res' is nil so set status here..
-			log.Println("Error checking long url:", err)
+			fmt.Println("Error checking long url:", err)
 			// No server response / timeout
 			stats.StatusCode = http.StatusServiceUnavailable
+
 		} else {
 			defer res.Body.Close()
 			stats.StatusCode = res.StatusCode
@@ -94,32 +117,19 @@ func RedirectHandler(w http.ResponseWriter, r *http.Request) {
 
 		// Update LinkDoc if http status changes
 		if stats.StatusCode != ld.LastStatusCode {
-			msg := fmt.Sprintf("Changing http status of %s from %v to %v", ld.ShortUrl, ld.LastStatusCode, stats.StatusCode)
-			log.Println(msg)
+			msg := fmt.Sprintf("Changing http status of %s from %v to %v\n", ld.ShortUrl, ld.LastStatusCode, stats.StatusCode)
+			fmt.Println(msg)
 			err := MongoDB.UpdateStatusCode(ld.ShortUrl, stats.StatusCode)
 			if err != nil {
-				log.Println("Error updating status code:", err)
+				fmt.Println("Error updating status code:", err)
 			}
 		}
 
 		// Record LinkStats doc
 		err = MongoDB.RecordStats(stats)
 		if err != nil {
-			log.Println("Error recording stats:", err)
+			fmt.Println("Error recording stats:", err)
 		}
-
-		// Instead of a straight redirect send a web page so we can avoid heroku timeout...
-		// The page can have http redirect or js to fetch the page then swap out
-		if stats.StatusCode == http.StatusOK {
-			//http.Redirect(w, r, ld.LongUrl, http.StatusSeeOther)
-			tpl.ExecuteTemplate(w, "redirect", ld.LongUrl)
-
-		} else {
-			// Show an error page and let the user try the link themselves
-			tpl.ExecuteTemplate(w, "direct", ld.LongUrl)
-		}
-
-		//http.ServeFile(w, r, "error_l.html")
 	}
 }
 
