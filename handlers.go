@@ -66,9 +66,10 @@ func RedirectHandler(w http.ResponseWriter, r *http.Request) {
 		// Subsequent users will see the direct link page. This is a faster user experience as the url check happens AFTER.
 		if ld.LastStatusCode == 200 || ld.LastStatusCode == 0  {
 			http.Redirect(w, r, ld.LongUrl, http.StatusSeeOther)
-
+			return
 		} else {
 			tpl.ExecuteTemplate(w, "direct", ld.LongUrl)
+			return
 		}
 
 		// Either way the user gets a result quickly, and we can check the link AFTER that fact...
