@@ -61,10 +61,10 @@ func RedirectHandler(w http.ResponseWriter, r *http.Request) {
 		// Increment clicks regardless... a click is a click
 		go MongoDB.IncrementClicks(ld.ShortUrl)
 
-		// If the last status was 200 - OK redirect immediately to save time. If the subsequent check finds the link is
-		// broken then only the first user will see the "hang" or 404. Subsequent users will see the direct link page.
-		// This is a much faster user experience as the url check can happen AFTER.
-		if ld.LastStatusCode == 200 {
+		// If the last status was 200 - OK, or 0 for first access, redirect immediately to save time.
+		// If the subsequent check finds the link is broken then only the first user will see the "hang" or 404.
+		// Subsequent users will see the direct link page. This is a faster user experience as the url check happens AFTER.
+		if ld.LastStatusCode == 200 || ld.LastStatusCode == 0  {
 			http.Redirect(w, r, ld.LongUrl, http.StatusSeeOther)
 
 		} else {
