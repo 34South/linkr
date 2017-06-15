@@ -33,36 +33,6 @@ func LoaderImage(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, "loader1.svg")
 }
 
-func AddHandler(w http.ResponseWriter, r *http.Request) {
-
-	// Start link doc with the bits we don't get in request body
-	ld := LinkDoc{
-		ID:        bson.NewObjectId(),
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
-	}
-
-	// Get the rest from req body...
-	responseEncoder := json.NewEncoder(w)
-	if err := json.NewDecoder(r.Body).Decode(&ld); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		if err := responseEncoder.Encode(&APIResponse{StatusMessage: err.Error()}); err != nil {
-			fmt.Fprintf(w, "Error occured while processing post request %v \n", err.Error())
-		}
-		return
-	}
-
-	err := MongoDB.AddLink(ld)
-	if err != nil {
-		w.WriteHeader(http.StatusConflict)
-		if err := responseEncoder.Encode(&APIResponse{StatusMessage: err.Error()}); err != nil {
-			fmt.Fprintf(w, "Error %s occured while trying to add the url \n", err.Error())
-		}
-		return
-	}
-	responseEncoder.Encode(&APIResponse{StatusMessage: "Ok"})
-}
-
 // RedirectHandler redirects the request to the target long url
 func RedirectHandler(w http.ResponseWriter, r *http.Request) {
 
@@ -79,6 +49,8 @@ func RedirectHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		// Ok, change of approach here... we'll immediately redirect the user
+
 		// Increment Clicks
 		go MongoDB.IncrementClicks(ld.ShortUrl)
 
@@ -91,7 +63,7 @@ func RedirectHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Check link is UP, if it isn't we can record the status. Note that this fancy client
-		// function is here because one link had more than 10 redirects at th remote end.
+		// function is here because one link had more than 10 redirects at the remote end.
 		// So this allows us to up the limit (10 is Go default)... it came from here:
 		// https://gist.github.com/VojtechVitek/eb0171fc65f945a8641e
 		client := &http.Client{
@@ -112,7 +84,7 @@ func RedirectHandler(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			// 'res' is nil so set status here..
 			log.Println("Error checking long url:", err)
-			// Set status code - no server response at all / timeout
+			// No server response / timeout
 			stats.StatusCode = http.StatusServiceUnavailable
 		} else {
 			defer res.Body.Close()
@@ -136,12 +108,18 @@ func RedirectHandler(w http.ResponseWriter, r *http.Request) {
 			log.Println("Error recording stats:", err)
 		}
 
+		// Instead of a straight redirect send a web page so we can avoid heroku timeout...
+		// The page can have http redirect or js to fetch the page then swap out
 		if stats.StatusCode == http.StatusOK {
-			http.Redirect(w, r, ld.LongUrl, http.StatusFound)
-			return
+			//http.Redirect(w, r, ld.LongUrl, http.StatusSeeOther)
+			tpl.ExecuteTemplate(w, "redirect", ld.LongUrl)
+
+		} else {
+			// Show an error page and let the user try the link themselves
+			tpl.ExecuteTemplate(w, "direct", ld.LongUrl)
 		}
 
-		http.ServeFile(w, r, "error_l.html")
+		//http.ServeFile(w, r, "error_l.html")
 	}
 }
 

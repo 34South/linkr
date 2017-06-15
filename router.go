@@ -2,10 +2,10 @@ package main
 
 import (
 	"github.com/gorilla/mux"
+	"github.com/rs/cors"
 	"log"
 	"net/http"
 	"os"
-	"github.com/rs/cors"
 )
 
 func Start() {
@@ -17,8 +17,6 @@ func Start() {
 	r.Methods("GET").Path("/broken.json").HandlerFunc(BrokenJSONHandler)
 	r.Methods("GET").Path("/{shortUrl}.json").HandlerFunc(JSONHandler)
 	r.Methods("GET").Path("/{shortUrl}").HandlerFunc(RedirectHandler)
-	// TODO: secure this !!
-	r.Methods("POST").Path("/").HandlerFunc(AddHandler)
 
 	// Heroku dyanmically assigns port so..
 	port := os.Getenv("PORT")
