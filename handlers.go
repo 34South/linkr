@@ -9,11 +9,11 @@ import (
 
 	"errors"
 	"github.com/gorilla/mux"
+	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 	"html/template"
 	"os"
 	"strconv"
-	"gopkg.in/mgo.v2"
 )
 
 type Link struct {
@@ -61,69 +61,81 @@ func RedirectHandler(w http.ResponseWriter, r *http.Request) {
 		// Increment clicks regardless... a click is a click
 		go MongoDB.IncrementClicks(ld.ShortUrl)
 
+		// Check URL in a Go routine so no waiting...
+		go checkURL(r, &ld)
+
 		// If the last status was 200 - OK, or 0 for first access, redirect immediately to save time.
 		// If the subsequent check finds the link is broken then only the first user will see the "hang" or 404.
 		// Subsequent users will see the direct link page. This is a faster user experience as the url check happens AFTER.
-		if ld.LastStatusCode == 200 || ld.LastStatusCode == 0  {
+		if ld.LastStatusCode == 200 || ld.LastStatusCode == 0 {
 			http.Redirect(w, r, ld.LongUrl, http.StatusSeeOther)
 			return
-		} else {
-			tpl.ExecuteTemplate(w, "direct", ld.LongUrl)
-			return
 		}
 
-		// Either way the user gets a result quickly, and we can check the link AFTER that fact...
-		// DO NOT RESPOND PAST HERE!!
+		tpl.ExecuteTemplate(w, "direct", ld.LongUrl)
+	}
+}
 
+func checkURL(r *http.Request, ld *LinkDoc) {
 
-		// LinkStats
-		stats := LinkStatsDoc{
-			ID:        bson.NewObjectId(),
-			LinkID:    ld.ID,
-			CreatedAt: time.Now(),
-			Referrer:  r.Referer(),
-			Agent:     r.UserAgent(),
-		}
+	fmt.Println("Go routine checking URL ", ld.LongUrl)
 
-		// Check link is UP, if it isn't we can record the status. Note that this fancy client
-		// function is here because one link had more than 10 redirects at the remote end.
-		// So this allows us to up the limit (10 is Go default)... it came from here:
-		// https://gist.github.com/VojtechVitek/eb0171fc65f945a8641e
-		client := &http.Client{
-			CheckRedirect: func() func(req *http.Request, via []*http.Request) error {
-				redirects := 0
-				return func(req *http.Request, via []*http.Request) error {
-					if redirects > 15 {
-						fmt.Println("Checking target url had %v redirects", redirects)
-						return errors.New("More than 15 redirects")
-					}
-					redirects++
-					return nil
+	// LinkStats
+	stats := LinkStatsDoc{
+		ID:        bson.NewObjectId(),
+		LinkID:    ld.ID,
+		CreatedAt: time.Now(),
+		Referrer:  r.Referer(),
+		Agent:     r.UserAgent(),
+	}
+
+	// Check link is UP, if it isn't we can record the status. Note that this fancy client
+	// function is here because one link had more than 10 redirects at the remote end.
+	// So this allows us to up the limit (10 is Go default)... it came from here:
+	// https://gist.github.com/VojtechVitek/eb0171fc65f945a8641e
+
+	// This stuff was an attempt to work around some remote servers resetting the connection from the
+	// Go http client, however the urls were fine from a browser.
+	//cfg := &tls.Config{
+	//	//MinVersion: tls.VersionTLS12,
+	//	MinVersion: 0,
+	//	InsecureSkipVerify: true,
+	//}
+	//var netTransport = &http.Transport{
+	//	Dial: (&net.Dialer{
+	//		Timeout: 10 * time.Second,
+	//	}).Dial,
+	//	TLSHandshakeTimeout: 10 * time.Second,
+	//	TLSClientConfig: cfg,
+	//}
+
+	client := &http.Client{
+		Timeout: time.Second * 30,
+		//Transport: netTransport,
+		CheckRedirect: func() func(req *http.Request, via []*http.Request) error {
+			redirects := 0
+			return func(req *http.Request, via []*http.Request) error {
+				if redirects > 15 {
+					fmt.Printf("Checking target url had %v redirects\n", redirects)
+					return errors.New("More than 15 redirects")
 				}
-			}(),
-		}
-
-		res, err := client.Get(ld.LongUrl)
-		if err != nil {
-			// 'res' is nil so set status here..
-			fmt.Println("Error checking long url:", err)
-			// No server response / timeout
-			stats.StatusCode = http.StatusServiceUnavailable
-
-		} else {
-			defer res.Body.Close()
-			stats.StatusCode = res.StatusCode
-		}
-		// Don't refer to 'res' past here in case it is nil
-
-		// Update LinkDoc if http status changes
-		if stats.StatusCode != ld.LastStatusCode {
-			msg := fmt.Sprintf("Changing http status of %s from %v to %v\n", ld.ShortUrl, ld.LastStatusCode, stats.StatusCode)
-			fmt.Println(msg)
-			err := MongoDB.UpdateStatusCode(ld.ShortUrl, stats.StatusCode)
-			if err != nil {
-				fmt.Println("Error updating status code:", err)
+				redirects++
+				return nil
 			}
+		}(),
+	}
+
+	//res, err := client.Head(ld.LongUrl)
+	res, err := client.Get(ld.LongUrl)
+	if err != nil {
+		// 'res' is nil so set status here..
+		fmt.Println("Error checking long url:", err)
+		// No server response / timeout
+		stats.StatusCode = http.StatusGatewayTimeout
+
+		err = MongoDB.UpdateStatusCode(ld.ShortUrl, stats.StatusCode)
+		if err != nil {
+			fmt.Println("Error updating status code:", err)
 		}
 
 		// Record LinkStats doc
@@ -131,6 +143,31 @@ func RedirectHandler(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			fmt.Println("Error recording stats:", err)
 		}
+
+		return
+	}
+
+	// Got a response
+	defer res.Body.Close()
+	fmt.Println("HTTP Response: ", res.Status)
+	stats.StatusCode = res.StatusCode
+
+	// Update lastStatusCode in Link if it is unset (0) or changed
+	if ld.LastStatusCode == 0 || stats.StatusCode != ld.LastStatusCode {
+
+		msg := fmt.Sprintf("Updating last status code for %s from %v to %v\n", ld.ShortUrl, ld.LastStatusCode, stats.StatusCode)
+		fmt.Println(msg)
+
+		err = MongoDB.UpdateStatusCode(ld.ShortUrl, stats.StatusCode)
+		if err != nil {
+			fmt.Println("Error updating status code:", err)
+		}
+	}
+
+	// Record LinkStats doc
+	err = MongoDB.RecordStats(stats)
+	if err != nil {
+		fmt.Println("Error recording stats:", err)
 	}
 }
 
