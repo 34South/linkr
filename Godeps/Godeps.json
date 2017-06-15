@@ -1,7 +1,10 @@
 {
 	"ImportPath": "github.com/34South/linkr",
-	"GoVersion": "go1.6",
+	"GoVersion": "go1.7",
 	"GodepVersion": "v74",
+	"Packages": [
+		"./..."
+	],
 	"Deps": [
 		{
 			"ImportPath": "github.com/34South/envr",
