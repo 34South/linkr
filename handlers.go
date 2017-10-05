@@ -2,18 +2,18 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"html/template"
 	"log"
 	"net/http"
+	"os"
+	"strconv"
 	"time"
 
-	"errors"
 	"github.com/gorilla/mux"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
-	"html/template"
-	"os"
-	"strconv"
 )
 
 type Link struct {
@@ -55,6 +55,15 @@ func RedirectHandler(w http.ResponseWriter, r *http.Request) {
 			tpl.ExecuteTemplate(w, "error", msg)
 			return
 		}
+
+		// The link has an active field that is set to 'false'
+		if ld.Active == false {
+			fmt.Println("inactive")
+			msg := fmt.Sprintf("The link /%s is not currently active", sUrl)
+			tpl.ExecuteTemplate(w, "error", msg)
+			return
+		}
+
 		// Found
 		fmt.Println(" -> ", ld.LongUrl)
 
@@ -183,7 +192,9 @@ func JSONHandler(w http.ResponseWriter, r *http.Request) {
 		// Get link doc from db
 		ld, err := MongoDB.FindLink(sUrl)
 		if err != nil {
-			http.ServeFile(w, r, "error_s.html")
+			fmt.Println("not found")
+			msg := fmt.Sprintf("The link /%s could not be found in the database.", sUrl)
+			tpl.ExecuteTemplate(w, "error", msg)
 			return
 		}
 

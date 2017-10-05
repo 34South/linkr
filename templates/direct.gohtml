@@ -4,12 +4,19 @@
 <head>
     <meta charset="UTF-8">
     <title>Problem</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/css/bootstrap.min.css" integrity="sha384-/Y6pD6FV/Vv2HJnA6t+vslU6fwYXjCFtcEpHbNJ0lyAFsXTsjBbfaDjzALeQsN6M" crossorigin="anonymous">
 </head>
 <body>
-<p>There may be a problem with this resource. Please try the direct link below and see how that goes:</p>
-
-<p><a href="{{ . }}">{{ . }}</a></p>
-
+<div class="container-fluid">
+    <div class="col-xs-12 col-md-offset-3">
+        <div class="alert alert-warning text-center" role="alert">
+            <h2>Problem?</h2>
+            <p>There was an issue with this resource on a previous occasion.</p>
+            <p>Please try the direct link below and see how that goes.</p>
+            <p><a href="{{ . }}">{{ . }}</a></p>
+        </div>
+    </div>
+</div>
 </body>
 </html>
 {{ end }}

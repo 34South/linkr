@@ -1,26 +1,38 @@
-## Environment Loader
+[![Go Report Card](https://goreportcard.com/badge/34South/envr)](https://goreportcard.com/report/34South/envr) [![Build Status](https://travis-ci.org/34South/envr.svg?branch=master)](https://travis-ci.org/34South/envr)
 
-Envr is a Go package for setting up environment vars.
+# envr
 
-It works, however I am a pretty average programmer at best, and new to Go.
+Check / set required env vars, optionally from a local `.env` file. Uses the [godotenv](https://github.com/joho/godotenv) by [John Barton](https://github.com/joho/).
 
-The idea is to declare the environment variables required and then Envr will
-check and load them from a *.env* file.
+## Purpose
 
-Like this:
+A convenient way to set env vars with a local file, or defer to env vars already set by some other means, eg Heroku config.
 
-```go
-env := envr.New("myEnv", []string{
-  "MONGO_URL",
-  "MONGO_DB",
-  "MONGO_LINKS_COLLECTION",
-  "MONGO_STATS_COLLECTION",
-}).Passive().Fatal()
+
+## Installation
+
+```bash
+$ go get github.com/34South/envr
 ```
 
-Envr struct:
+
+## Usage
+
+Set up a new Envr and pass in the env vars your app expects to be set. 
+
+```go
+func init() {
+	env := envr.New("myEnv", []string{
+  		"SOME_VAR1",
+  		"SOME_VAR2",
+  		"SOME_APP_ID",
+  		"SOME_API_KEY",
+	}).Auto()
+}
+```
 
 ```Go
+// Envr contains fields related to the environment vars 
 type Envr struct {
 	Ready        bool              `json:"ready"`           // Flag for the goodness
 	Name         string            `json:"environmentName"` // name of environment
@@ -29,48 +41,55 @@ type Envr struct {
 	ExistingVars []string          `json:"existingVars"`    // the env vars that are set
 	MissingVars  []string          `json:"missingVars"`     // the env vars not set
 	V            map[string]string `json:"values"`          // map of existing vars and values
-	Status       string            `json:"status"`          // a message about current statuss
+	Status       string            `json:"status"`          // a message about current status
 	Error        error             `json:"error"`           // error field, for easier method chaining
 }
 ```
 
-##### New("someName", []string{"var1", "var2",}, "configFile1, configFile2...")
-Set up a new environment, expectated vars and one or more config files. If omitted
-config files will default to *.env*.
+**Envr Methods**
 
-##### .Auto()
-Quick way to do .Clean.Fatal(), that is, will set all the expected vars that can
-be found in *.env*, and do log.Fatal() if any are missing.
+**.New("envName", []string{"var1", "var2"}, "configFile1, configFile2...")**
+* Initialises a new Envr value with (arbitrary) name "envName"
+* Second argument is a []string containing names of all expected / required env vars
+* Third argument is an optional list of files containing env var names and values. If not present defaults to `.env`.
 
-##### .Passive()
-Set expected vars, but only if they are NOT already set.
+The `.env` file can be formatted like this:
 
-##### .Clean()
-Set all expected vars without checking.
+```
+# Comments are allowed
+VAR1="value one"
+VAR2=1234
+```
 
-##### .Fatal()
-Do a log.Fatal() if the environment is not all ok.
+See [godotenv](https://github.com/joho/godotenv) for details.
 
-##### .JSON()
-Print a JSON version of the Envr value.
+## Methods
 
+**.Auto()**
+Quick way to do **.Clean.Fatal()** - sets all the expected vars found in `.env`, and exists if any are missing.
 
-This example could use an .env to run things locally, but when deploy to Heroku
-(for example), it will load the vars from the Heroku environment.
+**.Passive()**
+Set expected vars *ONLY* if they are *NOT* already set.
 
+**.Clean()**
+Set all expected vars without checking first.
 
-#### Todo
-* Make it better
-* Check vars that exist in config but are MISSING in the expectatons list
+**.Fatal()**
+Exits if the environment is *NOT* `.Ready = true`
+
+## Todo
+* Check vars that exist in config but are MISSING in the expectations list
 * Learn how to write tests
 * Write tests
-* Proper docs
-* Examples
 * Go sailing
 
-... it's early days... I will keep tweaking it.
 
-#### Credit
+## License
+The [MIT](https://mit-license.org/) License (MIT)
+Copyright © 2017 Mike Donnici
 
-It uses [godotenv](https://github.com/joho/godotenv) package to load *.env*  
-- skills, @joho
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the “Software”), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.

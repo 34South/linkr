@@ -18,6 +18,7 @@ type LinkDoc struct {
 	Title          string        `json:"title" bson:"title"`
 	Clicks         int           `json:"clicks" bson:"clicks"`
 	LastStatusCode int           `json:"lastStatusCode" bson:"lastStatusCode"`
+	Active         bool          `json:"active"`
 }
 
 type LinkStatsDoc struct {

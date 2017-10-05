@@ -1,7 +1,6 @@
 package envr
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/joho/godotenv"
 	"log"
@@ -9,6 +8,7 @@ import (
 	"strings"
 )
 
+// Envr contains info about the environment setup
 type Envr struct {
 	Ready        bool              `json:"ready"`           // Flag for the goodness
 	Name         string            `json:"environmentName"` // name of environment
@@ -21,13 +21,14 @@ type Envr struct {
 	Error        error             `json:"error"`           // error field, for easier method chaining
 }
 
-// NewEnvr sets up a new Environment. It takes name, filename, and a list of required vars.
+// New sets up a new Environment. It takes an arbitrary name (n), a list of required vars (vs) and
+// zero or more file names from which to read the vars, eg ".env1,.env2". Defaults to .env
 func New(n string, vs []string, f ...string) *Envr {
 
 	e := Envr{}
 	e.Ready = false
 	e.Name = n
-	// if no env file(s) are specified, default to a single .envOFF
+	// if no env file(s) are specified, default to a single .env
 	if len(f) == 0 {
 		e.Files = append(e.Files, ".env")
 	}
@@ -46,7 +47,7 @@ func New(n string, vs []string, f ...string) *Envr {
 	return &e
 }
 
-// Update sets / updates Envr fields
+// Update sets / updates fields in the Envr value
 func (e *Envr) Update() {
 
 	// Empty out first
@@ -131,7 +132,7 @@ func (e *Envr) Fatal() *Envr {
 	return e
 }
 
-// VarSet checks if a var is currently set
+// IsSet checks if a var is currently set
 func (e *Envr) IsSet(v string) bool {
 
 	return len(os.Getenv(v)) > 0
@@ -170,15 +171,3 @@ func (e *Envr) SetVar(v, s string) error {
 }
 
 // TODO: A method to check for vars that are INV the env file but NOT in the list of expected vars
-
-// JSON returns a JSOn version of the Envr value
-func (e *Envr) JSON() (string, error) {
-
-	bs, err := json.MarshalIndent(e, "", "\t")
-	//bs, err := json.Marshal(e)
-	if err != nil {
-		return "", nil
-	}
-
-	return string(bs), nil
-}
