@@ -1,0 +1,32 @@
+{{ define "popular" }}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ .Title }}</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/css/bootstrap.min.css"
+          integrity="sha384-/Y6pD6FV/Vv2HJnA6t+vslU6fwYXjCFtcEpHbNJ0lyAFsXTsjBbfaDjzALeQsN6M" crossorigin="anonymous">
+</head>
+<body>
+<div class="container-fluid">
+    <div class="row">
+        <div>
+
+            <h3>{{ .Heading }}</h3>
+
+            <div class="list-group">
+                {{ range $key, $link := .Links }}
+                    <a href="{{ $.BaseUrl }}/{{ $link.ShortUrl }}" target="_blank"
+                       class="list-group-item list-group-item-action list-group-item-light">
+                        <span class="badge badge-secondary">{{ $link.Clicks }}</span>
+                        {{ $link.Title }}
+                    </a>&nbsp;
+                {{ end }}
+            </div>
+
+        </div>
+    </div>
+</div>
+</body>
+</html>
+{{ end }}

@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"html/template"
 	"log"
 	"net/http"
 	"os"
@@ -24,6 +23,8 @@ type Link struct {
 type APIResponse struct {
 	StatusMessage string `json:statusmessage`
 }
+
+const maxRedirects = 30
 
 func IndexHandler(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/popular.html", http.StatusSeeOther)
@@ -70,12 +71,16 @@ func RedirectHandler(w http.ResponseWriter, r *http.Request) {
 		// Increment clicks regardless... a click is a click
 		go MongoDB.IncrementClicks(ld.ShortUrl)
 
-		// Check URL in a Go routine so no waiting...
+		// Check URL in a Go routine so no waiting... previously we waited and if the site was good the lastStatusCode
+		// was changed before redirecting the user. The issue was that some sites had many redirects so the check took
+		// a long time, then the actual redirect took a long time - painful. So now the check is done independently
+		// and if there was an issue previously the user is shown a direct link straight away.
 		go checkURL(r, &ld)
 
 		// If the last status was 200 - OK, or 0 for first access, redirect immediately to save time.
 		// If the subsequent check finds the link is broken then only the first user will see the "hang" or 404.
-		// Subsequent users will see the direct link page. This is a faster user experience as the url check happens AFTER.
+		// Subsequent users will see the direct link page. This is a faster user experience as the url check happens
+		// is independent (see above).
 		if ld.LastStatusCode == 200 || ld.LastStatusCode == 0 {
 			http.Redirect(w, r, ld.LongUrl, http.StatusSeeOther)
 			return
@@ -124,9 +129,10 @@ func checkURL(r *http.Request, ld *LinkDoc) {
 		CheckRedirect: func() func(req *http.Request, via []*http.Request) error {
 			redirects := 0
 			return func(req *http.Request, via []*http.Request) error {
-				if redirects > 15 {
+				if redirects > maxRedirects {
 					fmt.Printf("Checking target url had %v redirects\n", redirects)
-					return errors.New("More than 15 redirects")
+					msg := fmt.Sprintf("More than %v redirects", maxRedirects)
+					return errors.New(msg)
 				}
 				redirects++
 				return nil
@@ -137,8 +143,10 @@ func checkURL(r *http.Request, ld *LinkDoc) {
 	//res, err := client.Head(ld.LongUrl)
 	res, err := client.Get(ld.LongUrl)
 	if err != nil {
+
 		// 'res' is nil so set status here..
 		fmt.Println("Error checking long url:", err)
+
 		// No server response / timeout
 		stats.StatusCode = http.StatusGatewayTimeout
 
@@ -257,11 +265,11 @@ func PopularHTMLHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Parse the template
-	t, err := template.ParseFiles("popular.html")
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+	//t, err := template.ParseFiles("popular.html")
+	//if err != nil {
+	//	http.Error(w, err.Error(), http.StatusInternalServerError)
+	//	return
+	//}
 
 	// Set up some page data
 	pageData := make(map[string]interface{})
@@ -271,7 +279,7 @@ func PopularHTMLHandler(w http.ResponseWriter, r *http.Request) {
 	pageData["Links"] = ld
 
 	// Serve it up
-	err = t.Execute(w, pageData)
+	err = tpl.ExecuteTemplate(w, "popular", pageData)
 	if err != nil {
 		log.Printf("template execution: %s", err)
 	}
