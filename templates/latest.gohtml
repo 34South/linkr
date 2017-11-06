@@ -1,4 +1,4 @@
-{{ define "popular" }}
+{{ define "latest" }}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -14,14 +14,16 @@
 
             <h3 class="mt-4">{{ .Heading }}</h3>
 
-            {{ range $key, $link := .Links }}
+            {{ range $key, $r := .Resources }}
             <div class="card">
                 <div class="card-body">
-                    <h5 class="card-title">{{ $link.Title }}</h5>
-                    <h6 class="card-subtitle mb-2 text-muted"><span class="badge badge-secondary">{{ $link.Clicks }}</span> clicks</h6>
-                    <a href="{{ $.BaseUrl }}/{{ $link.ShortUrl }}" target="_blank">{{ $.BaseUrl }}/{{ $link.ShortUrl }}</a>
+                    <h5 class="card-title">{{ $r.Name }}</h5>
+                    <h6 class="card-subtitle mb-2 text-muted">{{ $r.PubDate.Date }}</h6>
+                    <p class="card-text">{{ $r.Description }}</p>
+                    <a href="{{ $r.ShortUrl }}" target="_blank">{{ $r.ShortUrl }}</a>
                 </div>
             </div>
+            <br>
             {{ end }}
 
         </div>

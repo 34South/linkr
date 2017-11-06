@@ -15,6 +15,10 @@ import (
 	"gopkg.in/mgo.v2/bson"
 )
 
+const maxRedirects = 30
+
+const defaultResultCount = 20
+
 type Link struct {
 	ShortURL string `json:shortUrl`
 	LongURL  string `json:longUrl`
@@ -23,8 +27,6 @@ type Link struct {
 type APIResponse struct {
 	StatusMessage string `json:statusmessage`
 }
-
-const maxRedirects = 30
 
 func IndexHandler(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/popular.html", http.StatusSeeOther)
@@ -111,15 +113,15 @@ func checkURL(r *http.Request, ld *LinkDoc) {
 	// This stuff was an attempt to work around some remote servers resetting the connection from the
 	// Go http client, however the urls were fine from a browser.
 	//cfg := &tls.Config{
-	//	//MinVersion: tls.VersionTLS12,
-	//	MinVersion: 0,
+	//	MinVersion: tls.VersionTLS12,
+	//	//MinVersion:         0,
 	//	InsecureSkipVerify: true,
 	//}
 	//var netTransport = &http.Transport{
-	//	Dial: (&net.Dialer{
-	//		Timeout: 10 * time.Second,
-	//	}).Dial,
-	//	TLSHandshakeTimeout: 10 * time.Second,
+	//	//Dial: (&net.Dialer{
+	//	//	Timeout: 10 * time.Second,
+	//	//}).Dial,
+	//	//TLSHandshakeTimeout: 10 * time.Second,
 	//	TLSClientConfig: cfg,
 	//}
 
@@ -224,7 +226,7 @@ func JSONHandler(w http.ResponseWriter, r *http.Request) {
 // Popular shows the most popular links
 func PopularJSONHandler(w http.ResponseWriter, r *http.Request) {
 
-	ld, err := MongoDB.Popular(10)
+	ld, err := MongoDB.Popular(defaultResultCount)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -245,15 +247,15 @@ func PopularJSONHandler(w http.ResponseWriter, r *http.Request) {
 // PopularHTMLHandler shows the most popular links in an HTML template
 func PopularHTMLHandler(w http.ResponseWriter, r *http.Request) {
 
-	// Get n from the url if there, otherwise default to 10
+	// Get n from the url if there, otherwise default to defaultResultCount
 	q := r.URL.Query()
 	ns, ok := q["n"] /// n is a slice
-	limit := 10      // default
+	limit := defaultResultCount      // default
 	var err error
 	if ok {
 		limit, err = strconv.Atoi(ns[0])
 		if err != nil {
-			limit = 10 // if the number in query string is bung
+			limit = defaultResultCount // if the number in query string is bung
 		}
 	}
 
@@ -280,6 +282,41 @@ func PopularHTMLHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Serve it up
 	err = tpl.ExecuteTemplate(w, "popular", pageData)
+	if err != nil {
+		log.Printf("template execution: %s", err)
+	}
+}
+
+// LatestHTMLHandler shows recently added links in an HTML template
+func LatestHTMLHandler(w http.ResponseWriter, r *http.Request) {
+
+	// Get n from the url if there, otherwise default to defaultResultCount
+	q := r.URL.Query()
+	ns, ok := q["n"] /// n is a slice
+	limit := defaultResultCount      // default
+	var err error
+	if ok {
+		limit, err = strconv.Atoi(ns[0])
+		if err != nil {
+			limit = defaultResultCount // if the number in query string is bung
+		}
+	}
+
+	// Get the latest Resources
+	rd, err := MongoDB.Latest(limit)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Set up some page data
+	pageData := make(map[string]interface{})
+	pageData["Title"] = "Latest Resources"
+	pageData["Heading"] = fmt.Sprintf("%v Latest Resources", limit)
+	pageData["Resources"] = rd
+
+	// Serve it up
+	err = tpl.ExecuteTemplate(w, "latest", pageData)
 	if err != nil {
 		log.Printf("template execution: %s", err)
 	}

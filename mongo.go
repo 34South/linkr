@@ -30,12 +30,29 @@ type LinkStatsDoc struct {
 	StatusCode int           `json:"statusCode" bson:"statusCode"`
 }
 
+type ResourcesDoc struct {
+	ID          bson.ObjectId `json:"_id,omitempty" bson:"_id"`
+	CreatedAt   time.Time     `json:"createdAt" bson:"createdAt"`
+	UpdatedAt   time.Time     `json:"updatedAt" bson:"updatedAt"`
+	PubDate     `json:"pubDate" bson:"pubDate"`
+	ShortUrl    string `json:"shortUrl" bson:"shortUrl"`
+	LongUrl     string `json:"resourceUrl" bson:"resourceUrl"`
+	Name        string `json:"name" bson:"name"`
+	Description string `json:"description" bson:"description"`
+	Active      bool   `json:"active"`
+}
+
+type PubDate struct {
+	Date time.Time `json:"date" bson:"date"`
+}
+
 type MongoConnection struct {
-	Session  *mgo.Session
-	URL      string
-	DB       string
-	LinksCol string
-	StatsCol string
+	Session      *mgo.Session
+	URL          string
+	DB           string
+	LinksCol     string
+	ResourcesCol string
+	StatsCol     string
 }
 
 func NewMongoConnection() *MongoConnection {
@@ -44,6 +61,7 @@ func NewMongoConnection() *MongoConnection {
 	c.URL = os.Getenv("MONGO_URL")
 	c.DB = os.Getenv("MONGO_DB")
 	c.LinksCol = os.Getenv("MONGO_LINKS_COLLECTION")
+	c.ResourcesCol = os.Getenv("MONGO_RESOURCES_COLLECTION")
 	c.StatsCol = os.Getenv("MONGO_STATS_COLLECTION")
 	c.CreateConnection()
 
@@ -64,6 +82,13 @@ func (c *MongoConnection) CreateConnection() (err error) {
 		err = errors.New("Could not create or attach to collection: " + c.LinksCol)
 	} else {
 		log.Printf("Found collection %s\n", c.LinksCol)
+	}
+
+	ResourcesCollection := c.Session.DB(c.DB).C(c.ResourcesCol)
+	if ResourcesCollection == nil {
+		err = errors.New("Could not create or attach to collection: " + c.ResourcesCol)
+	} else {
+		log.Printf("Found collection %s\n", c.ResourcesCol)
 	}
 
 	StatsCollection := c.Session.DB(c.DB).C(c.StatsCol)
@@ -95,6 +120,18 @@ func (c *MongoConnection) sessionLinksCollection() (session *mgo.Session, urlCol
 	if c.Session != nil {
 		session = c.Session.Copy()
 		urlCollection = session.DB(c.DB).C(c.LinksCol)
+	} else {
+		err = errors.New("No original session found")
+	}
+
+	return
+}
+
+func (c *MongoConnection) sessionResourcesCollection() (session *mgo.Session, urlCollection *mgo.Collection, err error) {
+
+	if c.Session != nil {
+		session = c.Session.Copy()
+		urlCollection = session.DB(c.DB).C(c.ResourcesCol)
 	} else {
 		err = errors.New("No original session found")
 	}
@@ -238,6 +275,26 @@ func (c *MongoConnection) Popular(n int) ([]LinkDoc, error) {
 	defer session.Close()
 
 	err = collection.Find(bson.M{"clicks": bson.M{"$gt": 0}}).Limit(n).Sort("-clicks").All(&r)
+	if err != nil {
+		return r, err
+	}
+
+	return r, nil
+}
+
+// Latest queries the Resources collection and orders by pubDate.date desc
+func (c *MongoConnection) Latest(n int) ([]ResourcesDoc, error) {
+
+	var r []ResourcesDoc
+
+	//get a copy of the original session and a collection
+	session, collection, err := c.sessionResourcesCollection()
+	if err != nil {
+		return r, err
+	}
+	defer session.Close()
+
+	err = collection.Find(bson.M{"active": true}).Limit(n).Sort("-pubDate.date").All(&r)
 	if err != nil {
 		return r, err
 	}
