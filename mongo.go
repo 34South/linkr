@@ -34,16 +34,24 @@ type ResourcesDoc struct {
 	ID          bson.ObjectId `json:"_id,omitempty" bson:"_id"`
 	CreatedAt   time.Time     `json:"createdAt" bson:"createdAt"`
 	UpdatedAt   time.Time     `json:"updatedAt" bson:"updatedAt"`
-	PubDate     `json:"pubDate" bson:"pubDate"`
-	ShortUrl    string `json:"shortUrl" bson:"shortUrl"`
-	LongUrl     string `json:"resourceUrl" bson:"resourceUrl"`
-	Name        string `json:"name" bson:"name"`
-	Description string `json:"description" bson:"description"`
-	Active      bool   `json:"active"`
+	PubDate                   `json:"pubDate" bson:"pubDate"`
+	ShortUrl    string        `json:"shortUrl" bson:"shortUrl"`
+	LongUrl     string        `json:"resourceUrl" bson:"resourceUrl"`
+	Name        string        `json:"name" bson:"name"`
+	Description string        `json:"description" bson:"description"`
+	Active      bool          `json:"active" bson:"active"`
+	Attributes                `json:"attributes" bson:"attributes"`
 }
 
 type PubDate struct {
 	Date time.Time `json:"date" bson:"date"`
+}
+
+type Attributes struct {
+	Source     string `json:"source" bson:"source"`
+	SourceID   string `json:"sourceId" bson:"sourceId"`
+	SourceName string `json:"sourceName" bson:"sourceName"`
+	SourceRef  string `json:"sourceRef" bson:"sourceRef"`
 }
 
 type MongoConnection struct {

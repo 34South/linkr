@@ -18,7 +18,7 @@
             <div class="card">
                 <div class="card-body">
                     <h5 class="card-title">{{ $r.Name }}</h5>
-                    <h6 class="card-subtitle mb-2 text-muted">{{ $r.PubDate.Date }}</h6>
+                    <h6 class="card-subtitle mb-2 text-muted">{{ $r.Attributes.SourceRef }}</h6>
                     <p class="card-text">{{ $r.Description }}</p>
                     <a href="{{ $r.ShortUrl }}" target="_blank">{{ $r.ShortUrl }}</a>
                 </div>
