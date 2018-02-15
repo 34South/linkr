@@ -18,7 +18,10 @@
             <div class="card">
                 <div class="card-body">
                     <h5 class="card-title">{{ $r.Name }}</h5>
-                    <h6 class="card-subtitle mb-2 text-muted">{{ $r.Attributes.SourceRef }}</h6>
+                    <h6 class="card-subtitle mb-2 text-muted">
+                        {{ $r.Attributes.SourceName }} {{ $r.Attributes.SourcePubDate }}
+                        {{ if ne $r.Attributes.SourceVolume "" }};{{ $r.Attributes.SourceVolume }}{{ end }}{{ if ne $r.Attributes.SourceIssue "" }}({{ $r.Attributes.SourceIssue }}){{ end }}{{ if ne $r.Attributes.SourcePages "" }}:{{ $r.Attributes.SourcePages }}{{ end }}
+                    </h6>
                     <p class="card-text">{{ $r.Description }}</p>
                     <a href="{{ $r.ShortUrl }}" target="_blank">{{ $r.ShortUrl }}</a>
                 </div>

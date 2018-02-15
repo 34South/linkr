@@ -51,7 +51,11 @@ type Attributes struct {
 	Source     string `json:"source" bson:"source"`
 	SourceID   string `json:"sourceId" bson:"sourceId"`
 	SourceName string `json:"sourceName" bson:"sourceName"`
-	SourceRef  string `json:"sourceRef" bson:"sourceRef"`
+	SourceNameAbbrev string `json:"sourceNameAbbrev" bson:"sourceNameAbbrev"`
+	SourcePubDate  string `json:"sourcePubDate" bson:"sourcePubDate"`
+	SourceVolume  string `json:"sourceVolume" bson:"sourceVolume"`
+	SourceIssue  string `json:"sourceIssue" bson:"sourceIssue"`
+	SourcePages  string `json:"sourcePages" bson:"sourcePages"`
 }
 
 type MongoConnection struct {
